@@ -1,0 +1,16 @@
+__pycache__/
+.venv/
+.vscode/
+.DS_Store
+
+data/*
+checkpoints/*
+outputs/*
+outputs_train/*
+
+!data/.gitkeep
+!checkpoints/.gitkeep
+!outputs/.gitkeep
+!outputs_train/.gitkeep
+
+*.csv
