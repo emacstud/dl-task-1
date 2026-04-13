@@ -1,13 +1,19 @@
+"""Dataset definitions for semantic segmentation."""
+
 from pathlib import Path
+import albumentations as A
 
 import numpy as np
 import torch
 from PIL import Image
+from torch import Tensor
 from torch.utils.data import Dataset
 
 
 class SemanticSegDataset(Dataset):
-    def __init__(self, images_dir: Path, masks_dir: Path, transform=None, return_stem: bool = False):
+    """Semantic segmentation dataset with image-mask pairs."""
+
+    def __init__(self, images_dir: Path, masks_dir: Path, transform: A.Compose | None = None, return_stem: bool = False) -> None:
         self.images_dir = Path(images_dir)
         self.masks_dir = Path(masks_dir)
         self.transform = transform
@@ -22,10 +28,12 @@ class SemanticSegDataset(Dataset):
             if not mask_path.exists():
                 raise RuntimeError(f"Missing mask for {path.name}: expected {mask_path}")
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the number of images."""
         return len(self.image_paths)
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> tuple[Tensor, Tensor] | tuple[Tensor, Tensor, str]:
+        """Load one image and its mask."""
         img_path = self.image_paths[idx]
         mask_path = self.masks_dir / f"{img_path.stem}.png"
 

@@ -1,11 +1,15 @@
+"""Utilities for training logs and plots."""
+
 import csv
 from pathlib import Path
 
 from matplotlib import pyplot as plt
+
 from lib.config import CLASS_IDS, ID_TO_CLASS
 
 
-def build_history_fieldnames():
+def build_history_fieldnames() -> list[str]:
+    """Build CSV column names for training history."""
     fieldnames = [
         "epoch",
         "lr",
@@ -22,18 +26,19 @@ def build_history_fieldnames():
     for class_id in CLASS_IDS:
         class_name = ID_TO_CLASS[class_id]
         fieldnames.extend([
-            f"{class_name}_TP",
-            f"{class_name}_FP",
-            f"{class_name}_FN",
-            f"{class_name}_precision",
-            f"{class_name}_recall",
-            f"{class_name}_f1",
+            f"val_{class_name}_TP",
+            f"val_{class_name}_FP",
+            f"val_{class_name}_FN",
+            f"val_{class_name}_precision",
+            f"val_{class_name}_recall",
+            f"val_{class_name}_f1",
         ])
 
     return fieldnames
 
 
-def init_history_csv(csv_path: Path):
+def init_history_csv(csv_path: Path) -> None:
+    """Create the training history CSV file."""
     csv_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(csv_path, "w", newline="") as f:
@@ -54,7 +59,8 @@ def append_history_csv(
     best_val_macro_f1: float,
     improved: bool,
     val_rows: list[dict],
-):
+) -> None:
+    """Append one epoch of metrics to the history CSV."""
     row = {
         "epoch": epoch,
         "lr": lr,
@@ -70,12 +76,12 @@ def append_history_csv(
 
     for class_row in val_rows:
         class_name = class_row["class_name"]
-        row[f"{class_name}_TP"] = class_row["TP"]
-        row[f"{class_name}_FP"] = class_row["FP"]
-        row[f"{class_name}_FN"] = class_row["FN"]
-        row[f"{class_name}_precision"] = class_row["precision"]
-        row[f"{class_name}_recall"] = class_row["recall"]
-        row[f"{class_name}_f1"] = class_row["f1"]
+        row[f"val_{class_name}_TP"] = class_row["TP"]
+        row[f"val_{class_name}_FP"] = class_row["FP"]
+        row[f"val_{class_name}_FN"] = class_row["FN"]
+        row[f"val_{class_name}_precision"] = class_row["precision"]
+        row[f"val_{class_name}_recall"] = class_row["recall"]
+        row[f"val_{class_name}_f1"] = class_row["f1"]
 
     with open(csv_path, "a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=build_history_fieldnames())
@@ -89,7 +95,8 @@ def save_line_plot(
     ylabel: str,
     out_path: Path,
     ylim: tuple[float, float] | None = None,
-):
+) -> None:
+    """Saves a line plot."""
     plt.figure(figsize=(8, 5))
 
     for label, values in curves.items():
@@ -111,7 +118,8 @@ def save_line_plot(
     plt.close()
 
 
-def plot_training_history(csv_path: Path, plots_dir: Path):
+def plot_training_history(csv_path: Path, plots_dir: Path) -> None:
+    """Generate plots from the training history CSV."""
     plots_dir.mkdir(parents=True, exist_ok=True)
 
     with open(csv_path, "r", newline="") as f:
@@ -164,9 +172,9 @@ def plot_training_history(csv_path: Path, plots_dir: Path):
         out_path=plots_dir / "learning_rate.png",
     )
 
-    precision_curves = {}
-    recall_curves = {}
-    f1_curves = {}
+    precision_curves: dict[str, list[float]] = {}
+    recall_curves: dict[str, list[float]] = {}
+    f1_curves: dict[str, list[float]] = {}
 
     for class_id in CLASS_IDS:
         class_name = ID_TO_CLASS[class_id]

@@ -1,16 +1,18 @@
+"""Run inference on unseen images."""
+
 import argparse
 from pathlib import Path
+
 import cv2
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-from lib.model import predict_mask
-from lib.transforms import get_infer_transform
 from lib.config import CHECKPOINTS_DIR, ID_TO_CLASS, OUTPUTS_DIR, UNSEEN_ROOT
+from lib.model import load_model_from_checkpoint, predict_mask
+from lib.transforms import get_infer_transform
 from lib.utils import get_device
-from lib.visualization import mask_to_rgb, make_overlay
-from lib.model import load_model_from_checkpoint
+from lib.visualization import make_overlay, mask_to_rgb
 
 
 def parse_args():
@@ -109,9 +111,9 @@ def main():
 
     print("\nInference complete.")
     print("Saved outputs to:", out_dir.resolve())
-    print(" - pred_masks      : raw class-id masks")
-    print(" - pred_masks_rgb  : colored masks")
-    print(" - pred_overlays   : mask overlays")
+    print(" - pred_masks: raw class-id masks")
+    print(" - pred_masks_rgb: colored masks")
+    print(" - pred_overlays: mask overlays")
 
 
 if __name__ == "__main__":

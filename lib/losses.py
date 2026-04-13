@@ -1,13 +1,17 @@
+"""Loss functions for semantic segmentation."""
+
 from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
+from torch import Tensor
 from tqdm import tqdm
 
 
-def multiclass_dice_loss(logits, targets, num_classes: int, ignore_background: bool = True, eps: float = 1e-6):
+def multiclass_dice_loss(logits: Tensor, targets: Tensor, num_classes: int, ignore_background: bool = True, eps: float = 1e-6) -> Tensor:
+    """Compute multiclass Dice loss."""
     probs = torch.softmax(logits, dim=1)
 
     targets_oh = F.one_hot(targets, num_classes=num_classes).permute(0, 3, 1, 2).float()
@@ -24,7 +28,8 @@ def multiclass_dice_loss(logits, targets, num_classes: int, ignore_background: b
     return 1.0 - dice.mean()
 
 
-def multiclass_focal_loss(logits, targets, gamma=2.0, reduction="mean"):
+def multiclass_focal_loss(logits: Tensor, targets: Tensor, gamma: float = 2.0, reduction: str = "mean") -> Tensor:
+    """Compute multiclass focal loss."""
     log_probs = F.log_softmax(logits, dim=1)
     probs = torch.exp(log_probs)
     targets_unsq = targets.unsqueeze(1)
@@ -42,7 +47,8 @@ def multiclass_focal_loss(logits, targets, gamma=2.0, reduction="mean"):
     return loss
 
 
-def compute_enet_class_weights(masks_dir: Path, num_classes: int, c: float = 1.02):
+def compute_enet_class_weights(masks_dir: Path, num_classes: int, c: float = 1.02) -> tuple[Tensor, np.ndarray, np.ndarray]:
+    """Compute ENet class weights from masks."""
     counts = np.zeros(num_classes, dtype=np.int64)
 
     for path in tqdm(sorted(Path(masks_dir).glob("*.png"))):
@@ -57,15 +63,16 @@ def compute_enet_class_weights(masks_dir: Path, num_classes: int, c: float = 1.0
 
 
 def compute_total_loss(
-    logits,
-    masks,
-    num_classes,
-    loss_mode,
+    logits: Tensor,
+    masks: Tensor,
+    num_classes: int,
+    loss_mode: str,
     ce_loss_fn=None,
-    focal_gamma=2.0,
-    cls_weight=1.0,
-    dice_weight=1.0,
-):
+    focal_gamma: float = 2.0,
+    cls_weight: float = 1.0,
+    dice_weight: float = 1.0,
+) -> tuple[Tensor, float, float]:
+    """Compute the total training loss."""
     if loss_mode == "weighted_ce_dice":
         if ce_loss_fn is None:
             raise ValueError("ce_loss_fn must be provided for weighted_ce_dice")

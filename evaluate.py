@@ -1,3 +1,5 @@
+"""Evaluate a trained segmentation model on the test set."""
+
 import argparse
 from pathlib import Path
 
@@ -14,7 +16,7 @@ from lib.utils import get_device
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_root", type=Path, default=SEMANTIC_ROOT)
-    parser.add_argument("--checkpoint", type=Path, default=Path("checkpoints/best_model.pth"))
+    parser.add_argument("--checkpoint", type=Path, default=Path("checkpoints/best_focal_dice_resnet34_448_imagenet_20e.pth"))
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--out_csv", type=Path, default=Path("evaluation_metrics.csv"))

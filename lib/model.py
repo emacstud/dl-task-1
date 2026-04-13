@@ -1,3 +1,5 @@
+"""Model building, training, evaluation, and inference utilities."""
+
 from pathlib import Path
 from typing import Any, Literal
 
@@ -16,6 +18,7 @@ from .utils import safe_div
 
 
 def build_unet(encoder_name: str, encoder_weights: str | None, num_classes: int) -> Unet:
+    """Build a U-Net model."""
     return Unet(
         encoder_name=encoder_name,
         encoder_weights=encoder_weights,
@@ -24,7 +27,8 @@ def build_unet(encoder_name: str, encoder_weights: str | None, num_classes: int)
     )
 
 
-def load_model_from_checkpoint(checkpoint_path: str, device: torch.device) -> tuple[Unet, Any]:
+def load_model_from_checkpoint(checkpoint_path: str | Path, device: torch.device) -> tuple[Unet, Any]:
+    """Load a model from a checkpoint."""
     ckpt = torch.load(checkpoint_path, map_location="cpu")
 
     model = build_unet(
@@ -45,12 +49,13 @@ def train_one_epoch(
     optimizer: AdamW,
     device: torch.device,
     num_classes: int,
-    loss_mode: Literal['weighted_ce_dice', 'focal_dice'],
+    loss_mode: Literal["weighted_ce_dice", "focal_dice"],
     ce_loss_fn: CrossEntropyLoss | None = None,
-    focal_gamma=2.0,
-    cls_weight=1.0,
-    dice_weight=1.0,
-) -> tuple[float, float, list, float]:
+    focal_gamma: float = 2.0,
+    cls_weight: float = 1.0,
+    dice_weight: float = 1.0,
+) -> tuple[float, float, list[dict], float]:
+    """Train the model for one epoch."""
     model.train()
 
     total_loss = 0.0
@@ -107,12 +112,13 @@ def validate_one_epoch(
     loader: DataLoader,
     device: torch.device,
     num_classes: int,
-    loss_mode: Literal['weighted_ce_dice', 'focal_dice'],
+    loss_mode: Literal["weighted_ce_dice", "focal_dice"],
     ce_loss_fn: CrossEntropyLoss | None = None,
-    focal_gamma=2.0,
-    cls_weight=1.0,
-    dice_weight=1.0,
-) -> tuple[float, float, list, float]:
+    focal_gamma: float = 2.0,
+    cls_weight: float = 1.0,
+    dice_weight: float = 1.0,
+) -> tuple[float, float, list[dict], float]:
+    """Validate the model for one epoch."""
     model.eval()
 
     total_loss = 0.0
@@ -163,7 +169,7 @@ def validate_one_epoch(
 
 def save_checkpoint(
     checkpoint_path: Path,
-    model,
+    model: Unet,
     encoder: str,
     encoder_weights_used: str,
     num_classes: int,
@@ -173,8 +179,9 @@ def save_checkpoint(
     cls_weight: float,
     dice_weight: float,
     best_val_macro_f1: float,
-    class_mapping: dict,
-):
+    class_mapping: dict[str, int],
+) -> None:
+    """Save a training checkpoint."""
     torch.save(
         {
             "model_state": model.state_dict(),
@@ -194,7 +201,8 @@ def save_checkpoint(
 
 
 @torch.no_grad()
-def evaluate_model(model: Unet, loader: DataLoader, device: torch.device):
+def evaluate_model(model: Unet, loader: DataLoader, device: torch.device) -> tuple[float, list[dict], float]:
+    """Evaluate the model on a dataset."""
     model.eval()
 
     tp = {c: 0 for c in CLASS_IDS}
@@ -229,9 +237,10 @@ def evaluate_model(model: Unet, loader: DataLoader, device: torch.device):
 
 
 @torch.no_grad()
-def predict_mask(model, image_rgb: np.ndarray, transform, device: torch.device):
+def predict_mask(model: Unet, image_rgb: np.ndarray, transform: Any, device: torch.device) -> np.ndarray:
+    """Predict a segmentation mask for one image."""
     out = transform(image=image_rgb)
-    image_tensor = out["image"].unsqueeze(0).to(device)  # (1,C,H,W)
+    image_tensor = out["image"].unsqueeze(0).to(device)
 
     logits = model(image_tensor)
     pred = torch.argmax(logits, dim=1).squeeze(0).cpu().numpy().astype(np.uint8)

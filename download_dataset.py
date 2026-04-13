@@ -1,3 +1,5 @@
+"""Download and split the OpenImages dataset."""
+
 import argparse
 
 from lib.config import CLASSES, COCO_ROOT, DEFAULT_SEED, UNSEEN_ROOT

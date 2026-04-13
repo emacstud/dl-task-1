@@ -1,3 +1,5 @@
+"""Image transforms for training, evaluation, and inference."""
+
 import albumentations as A
 import cv2
 from albumentations.pytorch import ToTensorV2
@@ -7,7 +9,8 @@ NORMALIZE_MEAN = (0.485, 0.456, 0.406)
 NORMALIZE_STD = (0.229, 0.224, 0.225)
 
 
-def get_train_transform(size: int):
+def get_train_transform(size: int) -> A.Compose:
+    """Build training transforms."""
     return A.Compose([
         A.Resize(size, size, interpolation=cv2.INTER_LINEAR, mask_interpolation=cv2.INTER_NEAREST),
         A.HorizontalFlip(p=0.5),
@@ -29,7 +32,8 @@ def get_train_transform(size: int):
     ])
 
 
-def get_eval_transform(size: int):
+def get_eval_transform(size: int) -> A.Compose:
+    """Build evaluation transforms."""
     return A.Compose([
         A.Resize(size, size, interpolation=cv2.INTER_LINEAR, mask_interpolation=cv2.INTER_NEAREST),
         A.Normalize(mean=NORMALIZE_MEAN, std=NORMALIZE_STD),
@@ -37,7 +41,8 @@ def get_eval_transform(size: int):
     ])
 
 
-def get_infer_transform(size: int):
+def get_infer_transform(size: int) -> A.Compose:
+    """Build inference transforms."""
     return A.Compose([
         A.Resize(size, size, interpolation=cv2.INTER_LINEAR),
         A.Normalize(mean=NORMALIZE_MEAN, std=NORMALIZE_STD),

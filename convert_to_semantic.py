@@ -1,3 +1,5 @@
+"""Convert COCO-style annotations to semantic segmentation masks."""
+
 import argparse
 import shutil
 from pathlib import Path
@@ -9,8 +11,8 @@ from tqdm import tqdm
 
 from lib.config import CLASS_TO_ID, COCO_ROOT, SEMANTIC_ROOT
 from lib.openimages import build_semantic_mask, find_image_path
-from lib.visualization import make_overlay, mask_to_rgb
 from lib.utils import reset_dir
+from lib.visualization import make_overlay, mask_to_rgb
 
 
 def parse_args():

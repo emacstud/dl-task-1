@@ -1,3 +1,5 @@
+"""Project configuration constants."""
+
 from pathlib import Path
 
 CLASSES = ["Eagle", "Laptop", "Dog"]

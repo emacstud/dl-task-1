@@ -1,3 +1,5 @@
+"""Train the semantic segmentation model."""
+
 import argparse
 from pathlib import Path
 
@@ -11,7 +13,7 @@ from lib.config import (
     DEFAULT_NUM_CLASSES,
     DEFAULT_SEED,
     SEMANTIC_ROOT,
-    TRAIN_OUTPUTS_DIR
+    TRAIN_OUTPUTS_DIR,
 )
 from lib.datasets import SemanticSegDataset
 from lib.logging import append_history_csv, init_history_csv, plot_training_history
@@ -25,13 +27,13 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_root", type=Path, default=SEMANTIC_ROOT)
     parser.add_argument("--size", type=int, default=384)
-    parser.add_argument("--epochs", type=int, default=25)
+    parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--num_workers", type=int, default=0)
 
-    parser.add_argument("--encoder", type=str, default="resnet18")
+    parser.add_argument("--encoder", type=str, default="resnet34")
     parser.add_argument( "--encoder_weights", type=str, default="imagenet", choices=["none", "imagenet"])
 
     parser.add_argument("--learning_rate_reduce_patience", type=int, default=3)
@@ -131,6 +133,8 @@ def main():
         mode="max",
         factor=args.learning_rate_reduce_factor,
         patience=args.learning_rate_reduce_patience,
+        threshold=args.early_stop_min_delta,
+        threshold_mode="abs",
     )
 
     save_dir = Path(args.save_dir)

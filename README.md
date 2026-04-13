@@ -20,7 +20,8 @@ The project includes:
 2. conversion from instance annotations to semantic masks,
 3. model training,
 4. evaluation on **100 unseen test images**,
-5. inference on additional unseen images.
+5. inference on additional unseen images,
+6. analysis of the hardest test cases.
 
 
 ---
@@ -34,6 +35,7 @@ The script must be run in the following order:
 3. `train.py`
 4. `evaluate.py`
 5. `infer.py`
+6. `analyze_hard_cases.py`
 
 ---
 
@@ -225,6 +227,69 @@ Runs the trained model on unseen images without labels and saves predicted masks
 
 ---
 
+## 6. Analyze the hardest test cases
+
+### Script
+```bash
+python analyze_hard_cases.py
+```
+
+### Purpose
+Analyzes the most difficult test images for the trained model.  
+For each test image, the script computes per-image:
+- total loss,
+- classification loss,
+- Dice loss,
+- pixel accuracy,
+- error rate,
+- macro F1,
+- per-class precision, recall, and F1.
+
+The images can be sorted by:
+- highest loss,
+- highest error rate,
+- lowest macro F1.
+
+For the top hardest cases, the script also saves:
+- input image,
+- ground-truth mask,
+- predicted mask,
+- RGB masks,
+- overlays,
+- residual / error map.
+
+### Input
+- `data/openimages_semantic/test/images/`
+- `data/openimages_semantic/test/masks/`
+- `data/openimages_semantic/train/masks/` (for class weights if needed)
+- checkpoint file, by default: `checkpoints/best_model.pth`
+
+### Output
+- `outputs/hard_cases/all_cases.csv`
+- `outputs/hard_cases/top_k_cases.csv`
+- `outputs/hard_cases/rank_XX_<stem>/` folders containing:
+  - `input.png`
+  - `gt_mask.png`
+  - `pred_mask.png`
+  - `gt_mask_rgb.png`
+  - `pred_mask_rgb.png`
+  - `gt_overlay.png`
+  - `pred_overlay.png`
+  - `error_map.png`
+  - `error_overlay.png`
+
+### Arguments
+| Argument | Default | Description |
+|---|---:|---|
+| `--data_root` | `data/openimages_semantic` | Semantic dataset root |
+| `--checkpoint` | `checkpoints/best_model.pth` | Trained model checkpoint |
+| `--output_dir` | `outputs/hard_cases` | Output directory for analysis results |
+| `--top_k` | `10` | Number of hardest cases to save visually |
+| `--sort_by` | `loss` | Sorting criterion (`loss`, `macro_f1`, `error_rate`) |
+| `--expected_test_size` | `100` | Expected number of test images |
+
+---
+
 
 ## Main folders
 
@@ -236,5 +301,44 @@ Runs the trained model on unseen images without labels and saves predicted masks
 | `checkpoints/` | Saved trained models |
 | `outputs_train/` | Training CSV history and plots |
 | `outputs/` | Inference outputs |
+| `outputs/hard_cases/` | Hard case analysis CSV files and visualizations |
+
+---
+
+## Observations
+
+Two training configurations were tested using the same backbone and preprocessing setup:
+
+- **Model architecture:** U-Net with **ResNet18** encoder  
+- **Input size:** **384 × 384**
+- **Training length:** **30 epochs**
+- **Compared losses:**
+  - **Weighted Cross-Entropy + Dice**
+  - **Focal + Dice**
+
+### Final test-set results
+Both models achieved **almost identical final macro F1** on the unseen 100-image test set:
+
+- **Weighted CE + Dice:** macro F1 = **0.8818**
+- **Focal + Dice:** macro F1 = **0.8821**
+
+This shows that **both loss functions are valid choices** for this task and lead to very similar overall performance.
+
+### Observations
+Although the final macro F1 is nearly the same, there are some differences in behavior:
+
+- **Focal + Dice** achieved slightly higher **pixel accuracy** on the test set.
+- **Focal + Dice** performed better on **Eagle** and **Dog**.
+- The difference in overall macro F1 is very small, so neither loss clearly dominates in all classes.
+
+### Training behavior
+The validation loss curves also show slightly different convergence behavior:
+
+- For **Focal + Dice**, the **validation loss plateaued after approximately epoch 12**.
+- For **Weighted CE + Dice**, the **validation loss plateaued after approximately epoch 16**.
+
+This suggests that **Focal + Dice converged faster**, while **Weighted CE + Dice continued improving for a few more epochs** before stabilizing.
+
+An additional U-Net configuration with a **ResNet34** encoder and **448 × 448** input transformations was trained for **20 epochs**. However, it also achieved a macro F1 of only **0.87**. On the other hand, the validation loss of this model had not yet reached a plateau, which suggests that further training epochs may still improve its performance.
 
 ---

@@ -1,3 +1,5 @@
+"""Utilities for loading and exporting OpenImages data."""
+
 import shutil
 from pathlib import Path
 
@@ -12,6 +14,7 @@ from .config import CLASS_TO_ID, PRIORITY
 
 
 def load_openimages_split(split: str, classes: list[str], max_samples: int, seed: int) -> Dataset:
+    """Load an OpenImages split from FiftyOne Zoo."""
     return foz.load_zoo_dataset(
         "open-images-v7",
         split=split,
@@ -24,18 +27,20 @@ def load_openimages_split(split: str, classes: list[str], max_samples: int, seed
     )
 
 
-def export_coco_dataset(ds, export_dir: Path, classes: list[str], label_field: str = "ground_truth") -> None:
+def export_coco_dataset(ds: Dataset, export_dir: Path, classes: list[str], label_field: str = "ground_truth") -> None:
+    """Export selected labels in COCO format."""
     export_dir = Path(export_dir)
 
     view = ds.filter_labels(label_field, F("label").is_in(classes))
     view.export(
         export_dir=str(export_dir),
-        dataset_type=fo.types.COCODetectionDataset,
+        dataset_type=fo.types.COCODetectionDataset, # type: ignore
         label_field=label_field,
     )
 
 
-def export_images_only(ds, export_dir: Path) -> None:
+def export_images_only(ds: Dataset, export_dir: Path) -> None:
+    """Export images without annotations."""
     export_dir = Path(export_dir)
     export_dir.mkdir(parents=True, exist_ok=True)
 
@@ -50,6 +55,7 @@ def export_images_only(ds, export_dir: Path) -> None:
 
 
 def find_image_path(split_dir: Path, file_name: str) -> Path:
+    """Find an exported image path in a split directory."""
     direct_path = split_dir / file_name
     if direct_path.exists():
         return direct_path
@@ -62,6 +68,7 @@ def find_image_path(split_dir: Path, file_name: str) -> Path:
 
 
 def build_semantic_mask(coco: COCO, image_id: int, catid_to_name: dict[int, str]) -> np.ndarray:
+    """Build a semantic mask for one image."""
     img_info = coco.loadImgs([image_id])[0]
     height, width = img_info["height"], img_info["width"]
 
