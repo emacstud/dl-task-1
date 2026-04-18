@@ -3,46 +3,29 @@
 import argparse
 from pathlib import Path
 
-import cv2
 import numpy as np
-from PIL import Image
 from tqdm import tqdm
 
-from lib.config import CHECKPOINTS_DIR, ID_TO_CLASS, OUTPUTS_DIR, UNSEEN_ROOT
+from lib.config import CHECKPOINTS_DIR, ID_TO_CLASS, INFER_OUTPUTS_DIR, UNSEEN_ROOT
 from lib.model import load_model_from_checkpoint, predict_mask
 from lib.transforms import get_infer_transform
-from lib.utils import get_device
-from lib.visualization import make_overlay, mask_to_rgb
+from lib.utils import (
+    get_device,
+    list_image_files,
+    load_rgb_image,
+    reset_dir,
+    resize_rgb_image,
+)
+from lib.visualization import save_prediction_outputs
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-
-    parser.add_argument("--checkpoint", type=str, default=CHECKPOINTS_DIR / "best_model.pth")
-    parser.add_argument("--input", type=str, default=UNSEEN_ROOT)
-    parser.add_argument("--output_dir", type=str, default=OUTPUTS_DIR)
+    parser.add_argument("--checkpoint", type=Path, default=CHECKPOINTS_DIR / "best_focal_dice_resnet34_448_imagenet_20e.pth")
+    parser.add_argument("--input", type=Path, default=UNSEEN_ROOT)
+    parser.add_argument("--output_dir", type=Path, default=INFER_OUTPUTS_DIR)
     parser.add_argument("--save_resized_input", action="store_true")
-
     return parser.parse_args()
-
-
-def save_outputs(image_path: Path, image_rgb: np.ndarray, pred_mask: np.ndarray, out_dir: Path):
-    stem = image_path.stem
-
-    masks_dir = out_dir / "pred_masks"
-    masks_rgb_dir = out_dir / "pred_masks_rgb"
-    overlays_dir = out_dir / "pred_overlays"
-
-    masks_dir.mkdir(parents=True, exist_ok=True)
-    masks_rgb_dir.mkdir(parents=True, exist_ok=True)
-    overlays_dir.mkdir(parents=True, exist_ok=True)
-
-    pred_rgb = mask_to_rgb(pred_mask)
-    overlay = make_overlay(image_rgb, pred_rgb)
-
-    Image.fromarray(pred_mask).save(masks_dir / f"{stem}.png")
-    Image.fromarray(pred_rgb).save(masks_rgb_dir / f"{stem}.png")
-    Image.fromarray(overlay).save(overlays_dir / f"{stem}.png")
 
 
 def print_prediction_summary(pred_mask: np.ndarray):
@@ -70,9 +53,10 @@ def main():
     if not input_path.exists():
         raise FileNotFoundError(f"Input path does not exist: {input_path}")
 
-    image_paths = [p for p in input_path.iterdir()]
+    image_paths = list_image_files(input_path)
+    stem_to_index = {p.stem: i for i, p in enumerate(image_paths, start=1)}
     out_dir = Path(args.output_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    reset_dir(out_dir)
 
     resized_inputs_dir = out_dir / "resized_inputs"
     if args.save_resized_input:
@@ -81,7 +65,8 @@ def main():
     print(f"Found {len(image_paths)} image(s)")
 
     for image_path in tqdm(image_paths, desc="Inference"):
-        image_rgb = np.array(Image.open(image_path).convert("RGB"))
+        index = stem_to_index[image_path.stem]
+        image_rgb = load_rgb_image(image_path)
 
         pred_mask = predict_mask(
             model=model,
@@ -90,21 +75,19 @@ def main():
             device=device,
         )
 
-        resized_image = cv2.resize(
-            image_rgb,
-            (size, size),
-            interpolation=cv2.INTER_LINEAR,
-        )
+        resized_image = resize_rgb_image(image_rgb, size)
 
-        save_outputs(
-            image_path=image_path,
+        save_prediction_outputs(
+            index=index,
             image_rgb=resized_image,
             pred_mask=pred_mask,
             out_dir=out_dir,
+            save_input=args.save_resized_input,
+            input_dir_name="resized_inputs",
         )
 
-        if args.save_resized_input:
-            Image.fromarray(resized_image).save(resized_inputs_dir / image_path.name)
+        print(f"\nImage {index}: {image_path.name}")
+        print_prediction_summary(pred_mask)
 
         print(f"\nImage: {image_path.name}")
         print_prediction_summary(pred_mask)

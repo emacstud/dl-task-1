@@ -53,3 +53,28 @@ def save_metrics_csv(out_csv: Path, pixel_acc: float, macro_f1: float, rows: lis
                 row["recall"],
                 row["f1"],
             ])
+
+
+def init_stat_dicts() -> tuple[dict[int, int], dict[int, int], dict[int, int]]:
+    """Initialize TP/FP/FN dictionaries for selected classes."""
+    tp = {c: 0 for c in CLASS_IDS}
+    fp = {c: 0 for c in CLASS_IDS}
+    fn = {c: 0 for c in CLASS_IDS}
+    return tp, fp, fn
+
+
+def update_stat_dicts(
+    pred_mask: np.ndarray,
+    true_mask: np.ndarray,
+    tp: dict[int, int],
+    fp: dict[int, int],
+    fn: dict[int, int],
+) -> None:
+    """Update TP/FP/FN counts for one predicted/ground-truth mask pair."""
+    for class_id in CLASS_IDS:
+        pred_c = pred_mask == class_id
+        true_c = true_mask == class_id
+
+        tp[class_id] += int((pred_c & true_c).sum())
+        fp[class_id] += int((pred_c & (~true_c)).sum())
+        fn[class_id] += int(((~pred_c) & true_c).sum())

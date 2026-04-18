@@ -41,6 +41,11 @@ DATA_DIR = Path("data")
 COCO_ROOT = DATA_DIR / "openimages_coco"
 SEMANTIC_ROOT = DATA_DIR / "openimages_semantic"
 UNSEEN_ROOT = DATA_DIR / "unseen"
+
 CHECKPOINTS_DIR = Path("checkpoints")
 OUTPUTS_DIR = Path("outputs")
 TRAIN_OUTPUTS_DIR = Path("outputs_train")
+
+EVALUATE_OUTPUTS_DIR = OUTPUTS_DIR / "evaluate"
+INFER_OUTPUTS_DIR = OUTPUTS_DIR / "infer"
+BENCHMARK_LANGSAM_OUTPUTS_DIR = OUTPUTS_DIR / "benchmark_langsam"

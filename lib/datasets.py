@@ -1,13 +1,15 @@
 """Dataset definitions for semantic segmentation."""
 
 from pathlib import Path
-import albumentations as A
 
+import albumentations as A
 import numpy as np
 import torch
 from PIL import Image
 from torch import Tensor
 from torch.utils.data import Dataset
+
+from lib.utils import list_image_files
 
 
 class SemanticSegDataset(Dataset):
@@ -19,7 +21,7 @@ class SemanticSegDataset(Dataset):
         self.transform = transform
         self.return_stem = return_stem
 
-        self.image_paths = sorted(self.images_dir.glob("*.jpg"))
+        self.image_paths = list_image_files(self.images_dir)
         if not self.image_paths:
             raise RuntimeError(f"No .jpg files found in {self.images_dir}")
 

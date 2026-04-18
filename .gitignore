@@ -10,3 +10,4 @@ outputs/*
 !data/.gitkeep
 !checkpoints/.gitkeep
 !outputs/.gitkeep
+!outputs/*.csv

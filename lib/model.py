@@ -1,7 +1,7 @@
 """Model building, training, evaluation, and inference utilities."""
 
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 import numpy as np
 import torch
@@ -201,7 +201,13 @@ def save_checkpoint(
 
 
 @torch.no_grad()
-def evaluate_model(model: Unet, loader: DataLoader, device: torch.device) -> tuple[float, list[dict], float]:
+def evaluate_model(
+    model: Unet,
+    loader: DataLoader,
+    device: torch.device,
+    on_sample: Callable[[np.ndarray, np.ndarray, str], None] | None = None,
+    desc: str = "Evaluating",
+) -> tuple[float, list[dict], float]:
     """Evaluate the model on a dataset."""
     model.eval()
 
@@ -212,7 +218,7 @@ def evaluate_model(model: Unet, loader: DataLoader, device: torch.device) -> tup
     total_correct = 0
     total_pixels = 0
 
-    for images, masks, _ in tqdm(loader, desc="Evaluating"):
+    for images, masks, stems in tqdm(loader, desc=desc):
         images = images.to(device)
         masks = masks.to(device)
 
@@ -229,6 +235,14 @@ def evaluate_model(model: Unet, loader: DataLoader, device: torch.device) -> tup
             tp[class_id] += (pred_c & true_c).sum().item()
             fp[class_id] += (pred_c & (~true_c)).sum().item()
             fn[class_id] += ((~pred_c) & true_c).sum().item()
+
+        if on_sample is not None:
+            preds_np = preds.detach().cpu().numpy().astype(np.uint8)
+            masks_np = masks.detach().cpu().numpy().astype(np.uint8)
+            stems_list = [str(stem) for stem in stems]
+
+            for pred_mask, true_mask, stem in zip(preds_np, masks_np, stems_list):
+                on_sample(pred_mask, true_mask, stem)
 
     pixel_acc = safe_div(total_correct, total_pixels)
     rows, macro_f1 = build_metric_rows(tp, fp, fn)

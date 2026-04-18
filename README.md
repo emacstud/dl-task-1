@@ -4,6 +4,9 @@ Author: Edvin Macel
 LSP: 2515991
 Selected classes: Eagle, Laptop, Dog
 
+## Note
+This is an updated version, submitted on 18.04.2026 with added benchmarking against LangSAM. The original submission contained only the mandatory task requirements was submitted before the deadline on 13.04.2026.
+
 
 ## Task description
 This project implements a semantic image segmentation pipeline for OpenImages.  
@@ -20,8 +23,9 @@ The project includes:
 2. conversion from instance annotations to semantic masks,
 3. model training,
 4. evaluation on **100 unseen test images**,
-5. inference on additional unseen images,
-6. analysis of the hardest test cases.
+5. benchmarking a pre-trained **LangSAM** model on the same labeled test set,
+6. inference on additional unseen images,
+7. analysis of the hardest test cases.
 
 
 ---
@@ -34,8 +38,9 @@ The script must be run in the following order:
 2. `convert_to_semantic.py`
 3. `train.py`
 4. `evaluate.py`
-5. `infer.py`
-6. `analyze_hard_cases.py`
+5. `benchmark_langsam.py`
+6. `infer.py`
+7. `analyze_hard_cases.py`
 
 ---
 
@@ -197,7 +202,55 @@ The script computes:
 
 ---
 
-## 5. Run inference on additional unseen images
+## 5. Benchmark LangSAM on the test set
+
+### Script
+```bash
+python benchmark_langsam.py
+```
+
+### Purpose
+Benchmarks a pre-trained **SAM-based model (LangSAM)** on the labeled semantic test split.
+
+Unlike `evaluate.py`, this script does **not** use a model checkpoint trained in this project.  
+Instead, it applies LangSAM with text prompts for the selected classes and converts the predictions into the same semantic mask format used throughout the project.
+
+The script computes:
+- pixel accuracy,
+- precision,
+- recall,
+- F1 score,
+- macro F1 for the selected classes.
+
+### Input
+- `data/openimages_semantic/test/images/`
+- `data/openimages_semantic/test/masks/`
+
+### Output
+- `outputs/benchmark_langsam_metrics.csv`
+- optionally, if `--save_visuals` is enabled:
+  - `outputs/benchmark_langsam/inputs/`
+  - `outputs/benchmark_langsam/gt_masks/`
+  - `outputs/benchmark_langsam/gt_masks_rgb/`
+  - `outputs/benchmark_langsam/gt_overlays/`
+  - `outputs/benchmark_langsam/pred_masks/`
+  - `outputs/benchmark_langsam/pred_masks_rgb/`
+  - `outputs/benchmark_langsam/pred_overlays/`
+
+### Arguments
+| Argument | Default | Description |
+|---|---:|---|
+| `--data_root` | `data/openimages_semantic` | Semantic dataset root |
+| `--size` | `384` | Input image size used for resizing test images and masks |
+| `--out_csv` | `outputs/benchmark_langsam_metrics.csv` | Output CSV file with LangSAM benchmark metrics |
+| `--output_dir` | `outputs/benchmark_langsam` | Directory for optional visual outputs |
+| `--save_visuals` | `False` | If set, saves visual prediction results and ground truth comparisons |
+| `--box_threshold` | `0.4` | Box confidence threshold used by LangSAM |
+| `--text_threshold` | `0.3` | Text matching threshold used by LangSAM |
+
+---
+
+## 6. Run inference on additional unseen images
 
 ### Script
 ```bash
@@ -227,7 +280,7 @@ Runs the trained model on unseen images without labels and saves predicted masks
 
 ---
 
-## 6. Analyze the hardest test cases
+## 7. Analyze the hardest test cases
 
 ### Script
 ```bash
